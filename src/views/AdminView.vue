@@ -2,7 +2,10 @@
   <div class="page-wrapper">
     <header class="page-header">
       <h1>CloudGame 관리자</h1>
-      <button class="btn-logout" @click="handleLogout">로그아웃</button>
+      <div class="header-right">
+        <span class="username">{{ auth.user?.username }}</span>
+        <button class="btn-logout" @click="handleLogout">로그아웃</button>
+      </div>
     </header>
 
     <nav class="tab-nav">
@@ -67,6 +70,17 @@ function handleLogout() {
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.username {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .btn-logout {

@@ -1,0 +1,69 @@
+<template>
+  <div class="page-wrapper">
+    <header class="page-header">
+      <h1>CloudGame</h1>
+      <button class="btn-logout" @click="handleLogout">로그아웃</button>
+    </header>
+
+    <main class="page-content">
+      <!-- 일반 사용자 콘텐츠 영역 -->
+    </main>
+  </div>
+</template>
+
+<script setup>
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const auth = useAuthStore()
+
+function handleLogout() {
+  auth.logout()
+  router.push({ name: 'login' })
+}
+</script>
+
+<style scoped>
+.page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f0f2f5;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  background-color: #4f46e5;
+  color: #ffffff;
+}
+
+.page-header h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.btn-logout {
+  padding: 8px 16px;
+  background-color: transparent;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-logout:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.page-content {
+  flex: 1;
+  padding: 32px;
+}
+</style>

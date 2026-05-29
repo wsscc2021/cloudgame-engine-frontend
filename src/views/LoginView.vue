@@ -62,7 +62,7 @@ async function handleSubmit() {
   loading.value = true
   try {
     await auth.login(form.username, form.password)
-    router.push('/')
+    router.push(auth.user?.role === 'admin' ? { name: 'admin' } : { name: 'user' })
   } catch (err) {
     errorMessage.value =
       err.response?.data?.message ?? '로그인에 실패했습니다. 다시 시도해주세요.'

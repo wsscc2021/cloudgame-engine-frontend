@@ -17,7 +17,9 @@
     </nav>
 
     <main class="page-content">
-      <component :is="currentTab.component" />
+      <div class="content-inner">
+        <component :is="currentTab.component" />
+      </div>
     </main>
   </div>
 </template>
@@ -88,6 +90,7 @@ function handleLogout() {
   background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
   padding: 0 32px;
+  overflow-x: auto;
 }
 
 .tab-btn {
@@ -101,6 +104,7 @@ function handleLogout() {
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s;
   margin-bottom: -1px;
+  white-space: nowrap;
 }
 
 .tab-btn:hover {
@@ -115,5 +119,36 @@ function handleLogout() {
 .page-content {
   flex: 1;
   padding: 32px;
+}
+
+.content-inner {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    padding: 12px 16px;
+  }
+
+  .tab-nav {
+    padding: 0 16px;
+  }
+
+  .page-content {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header h1 {
+    font-size: 1rem;
+  }
+
+  .btn-logout {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
 }
 </style>

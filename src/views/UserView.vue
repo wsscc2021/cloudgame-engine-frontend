@@ -6,7 +6,9 @@
     </header>
 
     <main class="page-content">
-      <!-- 일반 사용자 콘텐츠 영역 -->
+      <div class="content-inner">
+        <!-- 일반 사용자 콘텐츠 영역 -->
+      </div>
     </main>
   </div>
 </template>
@@ -65,5 +67,32 @@ function handleLogout() {
 .page-content {
   flex: 1;
   padding: 32px;
+}
+
+.content-inner {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    padding: 12px 16px;
+  }
+
+  .page-content {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header h1 {
+    font-size: 1rem;
+  }
+
+  .btn-logout {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
 }
 </style>

@@ -79,6 +79,7 @@ async function handleSubmit() {
   align-items: center;
   justify-content: center;
   background-color: #f0f2f5;
+  padding: 16px;
 }
 
 .login-card {
@@ -88,6 +89,13 @@ async function handleSubmit() {
   border-radius: 12px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
   padding: 48px 40px;
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 32px 24px;
+    border-radius: 8px;
+  }
 }
 
 .title {

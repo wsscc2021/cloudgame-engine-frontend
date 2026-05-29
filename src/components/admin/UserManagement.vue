@@ -204,7 +204,7 @@ onMounted(fetchUsers)
 
 <style scoped>
 .user-management {
-  max-width: 900px;
+  width: 100%;
 }
 
 .toolbar {
@@ -226,7 +226,8 @@ onMounted(fetchUsers)
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 table {
@@ -421,5 +422,29 @@ tr:last-child td {
   font-size: 0.875rem;
   color: #ef4444;
   margin: 8px 0 0;
+}
+
+@media (max-width: 640px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .btn-primary {
+    width: 100%;
+    text-align: center;
+  }
+
+  th, td {
+    padding: 10px 12px;
+    font-size: 0.82rem;
+  }
+
+  .modal {
+    padding: 24px 16px;
+    margin: 0 8px;
+    border-radius: 8px;
+  }
 }
 </style>

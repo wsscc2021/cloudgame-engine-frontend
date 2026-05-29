@@ -3,6 +3,7 @@
     <header class="page-header">
       <h1>CloudGame 관리자</h1>
       <div class="header-right">
+        <IconUser :size="16" class="user-icon" />
         <span class="username">{{ auth.user?.username }}</span>
         <button class="btn-logout" @click="handleLogout">로그아웃</button>
       </div>
@@ -32,6 +33,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import UserManagement from '@/components/admin/UserManagement.vue'
+import IconUser from '@/components/icons/IconUser.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -76,6 +78,11 @@ function handleLogout() {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.user-icon {
+  color: rgba(255, 255, 255, 0.85);
+  flex-shrink: 0;
 }
 
 .username {

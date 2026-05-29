@@ -98,6 +98,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getUsers, createUser, updateUser, deleteUser } from '@/api/user'
+import { formatDate } from '@/utils/date'
 
 const users = ref([])
 const loading = ref(false)
@@ -195,12 +196,6 @@ async function confirmDelete(id) {
   }
 }
 
-function formatDate(iso) {
-  return new Date(iso).toLocaleString('ko-KR', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
 
 onMounted(fetchUsers)
 </script>

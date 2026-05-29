@@ -1,22 +1,42 @@
 <template>
   <div class="page-wrapper">
     <header class="page-header">
-      <h1>관리자 페이지</h1>
+      <h1>CloudGame 관리자</h1>
       <button class="btn-logout" @click="handleLogout">로그아웃</button>
     </header>
 
+    <nav class="tab-nav">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        :class="['tab-btn', { active: activeTab === tab.key }]"
+        @click="activeTab = tab.key"
+      >
+        {{ tab.label }}
+      </button>
+    </nav>
+
     <main class="page-content">
-      <!-- 관리자 콘텐츠 영역 -->
+      <component :is="currentTab.component" />
     </main>
   </div>
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import UserManagement from '@/components/admin/UserManagement.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
+
+const tabs = [
+  { key: 'users', label: '사용자 관리', component: UserManagement },
+]
+
+const activeTab = ref('users')
+const currentTab = computed(() => tabs.find((t) => t.key === activeTab.value))
 
 function handleLogout() {
   auth.logout()
@@ -60,6 +80,36 @@ function handleLogout() {
 
 .btn-logout:hover {
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab-nav {
+  display: flex;
+  gap: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 32px;
+}
+
+.tab-btn {
+  padding: 14px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+  margin-bottom: -1px;
+}
+
+.tab-btn:hover {
+  color: #4f46e5;
+}
+
+.tab-btn.active {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
 }
 
 .page-content {

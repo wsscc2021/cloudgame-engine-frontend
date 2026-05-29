@@ -44,7 +44,11 @@
                 </template>
                 <template v-else>
                   <button class="btn-secondary-sm" @click="openEdit(user)">수정</button>
-                  <button class="btn-danger-sm" @click="confirmDeleteId = user.id">삭제</button>
+                  <button
+                    v-if="user.username !== 'administrator'"
+                    class="btn-danger-sm"
+                    @click="confirmDeleteId = user.id"
+                  >삭제</button>
                 </template>
               </td>
             </tr>

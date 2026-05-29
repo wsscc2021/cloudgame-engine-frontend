@@ -205,6 +205,8 @@ onMounted(fetchUsers)
 <style scoped>
 .user-management {
   width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
 }
 
 .toolbar {

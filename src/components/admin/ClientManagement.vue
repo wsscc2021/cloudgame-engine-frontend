@@ -54,35 +54,80 @@
     <!-- 생성 모달 -->
     <div v-if="modal.open" class="modal-overlay" @click.self="closeModal">
       <div class="modal">
-        <h3>인스턴스 생성</h3>
-
-        <form @submit.prevent="submitModal">
-          <div class="field">
-            <label>사용자 배정</label>
-            <select v-model="modal.form.user_id">
-              <option :value="null">— 미배정 —</option>
-              <option v-for="u in users" :key="u.id" :value="u.id">
-                {{ u.username }}
-              </option>
-            </select>
+        <!-- 결과 화면 -->
+        <template v-if="modal.result">
+          <h3>생성 결과</h3>
+          <p class="result-summary">
+            <span class="result-ok">{{ modal.result.created.length }}개 성공</span>
+            <template v-if="modal.result.failed.length > 0">
+              &nbsp;/&nbsp;<span class="result-fail">{{ modal.result.failed.length }}개 실패</span>
+            </template>
+          </p>
+          <div v-if="modal.result.failed.length > 0" class="fail-list">
+            <p class="fail-list-title">실패 목록</p>
+            <div v-for="f in modal.result.failed" :key="f.user_id" class="fail-item">
+              <span class="fail-user">{{ f.username ?? `ID ${f.user_id}` }}</span>
+              <span class="fail-reason">{{ f.reason }}</span>
+            </div>
           </div>
-
-          <div class="field">
-            <label>인스턴스 타입</label>
-            <select v-model="modal.form.instance_type">
-              <option v-for="t in instanceTypes" :key="t" :value="t">{{ t }}</option>
-            </select>
-          </div>
-
-          <p v-if="modal.error" class="error-message">{{ modal.error }}</p>
-
           <div class="modal-actions">
-            <button type="button" class="btn-ghost" @click="closeModal">취소</button>
-            <button type="submit" class="btn-primary" :disabled="modal.loading">
-              {{ modal.loading ? '생성 중...' : '생성' }}
-            </button>
+            <button type="button" class="btn-primary" @click="closeModal">확인</button>
           </div>
-        </form>
+        </template>
+
+        <!-- 생성 폼 -->
+        <template v-else>
+          <h3>인스턴스 생성</h3>
+
+          <form @submit.prevent="submitModal">
+            <div class="field">
+              <label>인스턴스 타입</label>
+              <select v-model="modal.form.instance_type">
+                <option v-for="t in instanceTypes" :key="t" :value="t">{{ t }}</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <div class="user-label-row">
+                <label>사용자 배정</label>
+                <div class="select-actions">
+                  <button type="button" class="btn-text" @click="selectAll">전체 선택</button>
+                  <span class="divider">|</span>
+                  <button type="button" class="btn-text" @click="deselectAll">전체 해제</button>
+                </div>
+              </div>
+              <div class="user-checklist">
+                <p v-if="users.length === 0" class="empty-users">등록된 일반 사용자가 없습니다.</p>
+                <label
+                  v-for="u in users"
+                  :key="u.id"
+                  class="check-item"
+                >
+                  <input
+                    type="checkbox"
+                    :value="u.id"
+                    v-model="modal.form.user_ids"
+                  />
+                  <span>{{ u.username }}</span>
+                </label>
+              </div>
+              <p class="hint" :class="{ 'hint-warn': modal.form.user_ids.length === 0 }">
+                {{ modal.form.user_ids.length === 0
+                  ? '사용자를 한 명 이상 선택해주세요.'
+                  : `${modal.form.user_ids.length}명 선택 → ${modal.form.user_ids.length}개 인스턴스 생성` }}
+              </p>
+            </div>
+
+            <p v-if="modal.error" class="error-message">{{ modal.error }}</p>
+
+            <div class="modal-actions">
+              <button type="button" class="btn-ghost" @click="closeModal">취소</button>
+              <button type="submit" class="btn-primary" :disabled="modal.loading">
+                {{ modal.loading ? '생성 중...' : '생성' }}
+              </button>
+            </div>
+          </form>
+        </template>
       </div>
     </div>
   </div>
@@ -107,9 +152,10 @@ const instanceTypes = [
 
 const modal = ref({
   open: false,
-  form: { user_id: null, instance_type: 't2.micro' },
+  form: { user_ids: [], instance_type: 't2.micro' },
   loading: false,
   error: '',
+  result: null,
 })
 
 const STATE_LABELS = {
@@ -150,9 +196,10 @@ async function fetchUsers() {
 function openCreate() {
   modal.value = {
     open: true,
-    form: { user_id: null, instance_type: 't2.micro' },
+    form: { user_ids: [], instance_type: 't2.micro' },
     loading: false,
     error: '',
+    result: null,
   }
 }
 
@@ -160,13 +207,31 @@ function closeModal() {
   modal.value.open = false
 }
 
+function selectAll() {
+  modal.value.form.user_ids = users.value.map(u => u.id)
+}
+
+function deselectAll() {
+  modal.value.form.user_ids = []
+}
+
 async function submitModal() {
   modal.value.error = ''
+  if (modal.value.form.user_ids.length === 0) {
+    modal.value.error = '최소 한 명 이상의 사용자를 선택해주세요.'
+    return
+  }
   modal.value.loading = true
   try {
-    await createInstance(modal.value.form)
-    closeModal()
+    const { data } = await createInstance(modal.value.form)
+    const created = data.data?.created ?? []
+    const failed  = data.data?.failed  ?? []
     await fetchInstances()
+    if (failed.length === 0) {
+      closeModal()
+    } else {
+      modal.value.result = { created, failed }
+    }
   } catch (err) {
     modal.value.error = err.response?.data?.message ?? '생성 중 오류가 발생했습니다.'
   } finally {
@@ -388,6 +453,86 @@ tr:last-child td { border-bottom: none; }
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
+.user-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.user-label-row label {
+  margin-bottom: 0;
+}
+
+.select-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #4f46e5;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-text:hover { text-decoration: underline; }
+
+.divider {
+  color: #d1d5db;
+  font-size: 0.8rem;
+}
+
+.user-checklist {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-weight: normal;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.check-item:hover { background: #f5f5ff; }
+
+.check-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #4f46e5;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.empty-users {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  padding: 12px 14px;
+  margin: 0;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 6px 0 0;
+}
+
+.hint-warn {
+  color: #d97706;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -399,6 +544,50 @@ tr:last-child td { border-bottom: none; }
   font-size: 0.875rem;
   color: #ef4444;
   margin: 8px 0 0;
+}
+
+.result-summary {
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: 0 0 16px;
+}
+
+.result-ok   { color: #16a34a; }
+.result-fail { color: #dc2626; }
+
+.fail-list {
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.fail-list-title {
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  margin: 0;
+}
+
+.fail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 14px;
+  border-top: 1px solid #fecaca;
+  font-size: 0.85rem;
+}
+
+.fail-user {
+  font-weight: 600;
+  color: #374151;
+}
+
+.fail-reason {
+  color: #6b7280;
+  word-break: break-all;
 }
 
 @media (max-width: 640px) {

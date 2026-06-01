@@ -16,8 +16,8 @@
                 <li class="bad">잘못된 예시 &nbsp;<code>https://example.org/v1/</code> &nbsp;— 경로 기입</li>
               </ul>
             </li>
-            <li>제공된 AWS 계정 내 리소스 endpoint를 입력해야 합니다.</li>
-            <li>그 외의 값을 입력하거나 잘못된 endpoint를 입력하는 경우 감점의 원인이 될 수 있습니다.</li>
+            <li>제공된 AWS 계정 내의 리소스로 향하는 endpoint를 입력해야 합니다.</li>
+            <li>그 외의 값을 입력하거나 잘못된 값을 입력하는 경우 감점의 원인이 될 수 있습니다.</li>
           </ol>
         </div>
       </div>
@@ -99,7 +99,7 @@ function clear() {
 <style scoped>
 .endpoint-tab {
   width: 100%;
-  max-width: 560px;
+  max-width: 760px;
   margin: 0 auto;
 }
 

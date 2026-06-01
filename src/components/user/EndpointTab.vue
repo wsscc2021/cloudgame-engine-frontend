@@ -3,6 +3,25 @@
     <div class="card">
       <h2>Endpoint</h2>
 
+      <div class="description">
+        <p>대회 중 발생하는 트래픽을 처리할 endpoint를 입력하세요.</p>
+        <div class="notice">
+          <p class="notice-title">(주의점)</p>
+          <ol>
+            <li>
+              경로를 포함하지 않은 프로토콜 및 주소를 입력해야 합니다.
+              <ul>
+                <li class="good">올바른 예시 &nbsp;<code>https://example.org</code></li>
+                <li class="bad">잘못된 예시 &nbsp;<code>example.org</code> &nbsp;— 프로토콜 누락</li>
+                <li class="bad">잘못된 예시 &nbsp;<code>https://example.org/v1/</code> &nbsp;— 경로 기입</li>
+              </ul>
+            </li>
+            <li>제공된 AWS 계정 내 리소스 endpoint를 입력해야 합니다.</li>
+            <li>그 외의 값을 입력하거나 잘못된 endpoint를 입력하는 경우 감점의 원인이 될 수 있습니다.</li>
+          </ol>
+        </div>
+      </div>
+
       <div class="info-row">
         <span class="label">현재 값</span>
         <span class="value" :class="{ empty: !auth.user?.endpoint }">
@@ -95,7 +114,67 @@ function clear() {
   font-size: 1.05rem;
   font-weight: 700;
   color: #1a1a2e;
-  margin: 0 0 24px;
+  margin: 0 0 20px;
+}
+
+/* 설명 영역 */
+.description {
+  background: #f8f9ff;
+  border: 1px solid #e0e4ff;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.description > p {
+  margin: 0 0 12px;
+  font-weight: 500;
+}
+
+.notice {
+  margin: 0;
+}
+
+.notice-title {
+  font-weight: 600;
+  margin: 0 0 8px;
+  color: #1a1a2e;
+}
+
+.notice ol {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notice ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notice ul li::before {
+  margin-right: 4px;
+}
+
+.notice ul li.good::before { content: '✓'; color: #16a34a; }
+.notice ul li.bad::before  { content: '✗'; color: #dc2626; }
+
+.notice code {
+  background: #eef0ff;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.82rem;
+  font-family: 'Courier New', monospace;
+  color: #4f46e5;
 }
 
 .info-row {

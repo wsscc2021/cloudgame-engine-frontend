@@ -61,7 +61,7 @@ import { updateEndpoint } from '@/api/user'
 
 const auth = useAuthStore()
 
-const endpointInput = ref(auth.user?.endpoint ?? '')
+const endpointInput = ref('')
 const saving = ref(false)
 const message = ref('')
 const messageType = ref('success')

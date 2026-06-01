@@ -2,7 +2,13 @@
   <div class="client-management">
     <div class="toolbar">
       <h2>클라이언트 관리</h2>
-      <button class="btn-primary" @click="openCreate">+ 인스턴스 생성</button>
+      <div class="toolbar-actions">
+        <button class="btn-refresh" :disabled="loading" @click="fetchInstances">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          새로고침
+        </button>
+        <button class="btn-primary" @click="openCreate">+ 인스턴스 생성</button>
+      </div>
     </div>
 
     <div class="table-wrapper">
@@ -274,6 +280,30 @@ onMounted(() => {
   margin: 0;
   color: #1a1a2e;
 }
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-refresh {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 14px;
+  background: #fff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-refresh:hover:not(:disabled) { background: #f3f4f6; border-color: #9ca3af; }
+.btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .table-wrapper {
   background: #fff;

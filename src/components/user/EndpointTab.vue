@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { updateEndpoint } from '@/api/user'
 
@@ -66,16 +66,13 @@ const saving = ref(false)
 const message = ref('')
 const messageType = ref('success')
 
-watch(() => auth.user?.endpoint, (val) => {
-  endpointInput.value = val ?? ''
-})
-
 async function submit(value) {
   message.value = ''
   saving.value = true
   try {
     const { data } = await updateEndpoint(auth.user.id, value)
     auth.patchUser({ endpoint: data.data.endpoint })
+    endpointInput.value = ''
     message.value = '저장되었습니다.'
     messageType.value = 'success'
   } catch (err) {

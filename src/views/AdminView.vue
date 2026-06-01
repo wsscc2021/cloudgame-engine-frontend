@@ -36,14 +36,16 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import UserManagement from '@/components/admin/UserManagement.vue'
 import ClientManagement from '@/components/admin/ClientManagement.vue'
+import LoadTestTab from '@/components/admin/LoadTestTab.vue'
 import IconUser from '@/components/icons/IconUser.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
 
 const tabs = [
-  { key: 'users',   label: '사용자 관리',   component: UserManagement },
-  { key: 'clients', label: '클라이언트 관리', component: ClientManagement },
+  { key: 'users',    label: '사용자 관리',    component: UserManagement },
+  { key: 'clients',  label: '클라이언트 관리', component: ClientManagement },
+  { key: 'loadtest', label: '부하 테스트',    component: LoadTestTab },
 ]
 
 const activeTab = ref('users')

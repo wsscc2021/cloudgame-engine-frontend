@@ -22,7 +22,9 @@
 
     <main class="page-content">
       <div class="content-inner">
-        <component :is="currentTab.component" />
+        <Transition name="tab" mode="out-in">
+          <component :is="currentTab.component" :key="activeTab" />
+        </Transition>
       </div>
     </main>
   </div>
@@ -145,6 +147,20 @@ function handleLogout() {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+/* 탭 전환 애니메이션 */
+.tab-enter-active,
+.tab-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.tab-enter-from {
+  opacity: 0;
+  transform: translateX(12px);
+}
+.tab-leave-to {
+  opacity: 0;
+  transform: translateX(-12px);
 }
 
 @media (max-width: 768px) {

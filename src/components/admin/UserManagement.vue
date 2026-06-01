@@ -13,6 +13,7 @@
             <th>ID</th>
             <th>사용자명</th>
             <th>역할</th>
+            <th>Endpoint</th>
             <th>생성일</th>
             <th>수정일</th>
             <th>액션</th>
@@ -20,10 +21,10 @@
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td colspan="6" class="center">불러오는 중...</td>
+            <td colspan="7" class="center">불러오는 중...</td>
           </tr>
           <tr v-else-if="users.length === 0">
-            <td colspan="6" class="center">사용자가 없습니다.</td>
+            <td colspan="7" class="center">사용자가 없습니다.</td>
           </tr>
           <template v-else>
             <tr v-for="user in users" :key="user.id">
@@ -34,6 +35,7 @@
                   {{ user.role === 'admin' ? '관리자' : '일반' }}
                 </span>
               </td>
+              <td :class="{ 'empty-cell': !user.endpoint }">{{ user.endpoint ?? '-' }}</td>
               <td>{{ formatDate(user.created_at) }}</td>
               <td>{{ formatDate(user.updated_at) }}</td>
               <td class="actions">
@@ -266,6 +268,10 @@ tr:last-child td {
   text-align: center;
   color: #9ca3af;
   padding: 32px;
+}
+
+.empty-cell {
+  color: #9ca3af;
 }
 
 /* 배지 */

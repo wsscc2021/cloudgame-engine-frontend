@@ -9,21 +9,43 @@
       </div>
     </header>
 
+    <nav class="tab-nav">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        :class="['tab-btn', { active: activeTab === tab.key }]"
+        @click="activeTab = tab.key"
+      >
+        {{ tab.label }}
+      </button>
+    </nav>
+
     <main class="page-content">
       <div class="content-inner">
-        <!-- 일반 사용자 콘텐츠 영역 -->
+        <component :is="currentTab.component" />
       </div>
     </main>
   </div>
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import IconUser from '@/components/icons/IconUser.vue'
+import UserInfoTab from '@/components/user/UserInfoTab.vue'
+import EndpointTab from '@/components/user/EndpointTab.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
+
+const tabs = [
+  { key: 'info',     label: '내 정보',   component: UserInfoTab },
+  { key: 'endpoint', label: 'Endpoint', component: EndpointTab },
+]
+
+const activeTab = ref('info')
+const currentTab = computed(() => tabs.find((t) => t.key === activeTab.value))
 
 function handleLogout() {
   auth.logout()
@@ -85,6 +107,35 @@ function handleLogout() {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+.tab-nav {
+  display: flex;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 32px;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  padding: 14px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+
+.tab-btn:hover { color: #4f46e5; }
+
+.tab-btn.active {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+}
+
 .page-content {
   flex: 1;
   padding: 32px;
@@ -97,23 +148,13 @@ function handleLogout() {
 }
 
 @media (max-width: 768px) {
-  .page-header {
-    padding: 12px 16px;
-  }
-
-  .page-content {
-    padding: 16px;
-  }
+  .page-header { padding: 12px 16px; }
+  .tab-nav { padding: 0 16px; }
+  .page-content { padding: 16px; }
 }
 
 @media (max-width: 480px) {
-  .page-header h1 {
-    font-size: 1rem;
-  }
-
-  .btn-logout {
-    padding: 6px 12px;
-    font-size: 0.8rem;
-  }
+  .page-header h1 { font-size: 1rem; }
+  .btn-logout { padding: 6px 12px; font-size: 0.8rem; }
 }
 </style>

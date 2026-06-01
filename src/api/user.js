@@ -15,3 +15,7 @@ export function updateUser(id, data) {
 export function deleteUser(id) {
   return api.delete(`/users/${id}`)
 }
+
+export function updateEndpoint(id, endpoint) {
+  return api.patch(`/users/${id}/endpoint`, { endpoint })
+}

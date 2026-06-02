@@ -151,22 +151,32 @@
               <thead>
                 <tr>
                   <th>시각</th>
+                  <th>메서드</th>
+                  <th>경로</th>
+                  <th>쿼리</th>
                   <th>상태</th>
                   <th>지연(ms)</th>
+                  <th>요청 바디</th>
+                  <th>응답 바디</th>
                   <th>오류</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="log in logsMap[item.id]" :key="log.id"
                     :class="log.error ? 'row-error' : log.status_code >= 400 ? 'row-warn' : ''">
-                  <td class="mono">{{ log.occurred_at.replace('T', ' ').slice(0, 19) }}</td>
+                  <td class="mono">{{ log.occurred_at.replace('T', ' ').slice(11, 19) }}</td>
+                  <td><span class="method-badge">{{ log.method ?? '—' }}</span></td>
+                  <td class="mono cell-truncate" :title="log.path">{{ log.path ?? '' }}</td>
+                  <td class="mono cell-truncate" :title="log.querystring">{{ log.querystring ?? '' }}</td>
                   <td>
-                    <span :class="['badge-sm', log.status_code >= 400 ? 'badge-sm-err' : 'badge-sm-ok']">
+                    <span :class="['badge-sm', !log.status_code ? 'badge-sm-err' : log.status_code >= 400 ? 'badge-sm-err' : 'badge-sm-ok']">
                       {{ log.status_code ?? '—' }}
                     </span>
                   </td>
                   <td class="mono">{{ log.latency_ms?.toFixed(1) }}</td>
-                  <td class="err-text">{{ log.error ?? '' }}</td>
+                  <td class="mono cell-truncate" :title="log.request_body">{{ log.request_body ?? '' }}</td>
+                  <td class="mono cell-truncate" :title="log.response_body">{{ log.response_body ?? '' }}</td>
+                  <td class="err-text" :title="log.error">{{ log.error ?? '' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -711,7 +721,22 @@ loadInstances()
 .badge-sm-ok  { background: #dcfce7; color: #16a34a; }
 .badge-sm-err { background: #fee2e2; color: #dc2626; }
 
-.err-text { color: #dc2626; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.method-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  color: #4f46e5;
+}
+
+.cell-truncate {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.err-text { color: #dc2626; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .error-msg {
   font-size: 0.875rem;

@@ -15,6 +15,9 @@
         <p v-if="selectedInst && !selectedInst.private_ip" class="warn">
           선택한 인스턴스에 Private IP가 없습니다. 인스턴스가 실행 중인지 확인하세요.
         </p>
+        <p v-else-if="selectedInst && !selectedInst.username" class="warn">
+          인스턴스에 배정된 사용자가 없습니다.
+        </p>
       </template>
     </div>
 
@@ -22,11 +25,10 @@
       <!-- 설정 폼 -->
       <div class="card form-card">
         <h3 class="card-title">테스트 설정</h3>
+        <p class="endpoint-info">
+          대상 URL: <span class="endpoint-val">{{ selectedInst?.username ?? '—' }}의 Endpoint</span>
+        </p>
         <div class="form-grid">
-          <div class="field span-2">
-            <label>대상 URL <span class="required">*</span></label>
-            <input v-model="form.url" type="text" placeholder="http://example.com" :disabled="running" />
-          </div>
           <div class="field">
             <label>경로</label>
             <input v-model="form.path" type="text" placeholder="/" :disabled="running" />
@@ -66,7 +68,7 @@
         <p v-if="formError" class="error-msg">{{ formError }}</p>
 
         <div class="form-actions">
-          <button class="btn-run" :disabled="running || !form.url || !selectedInst?.private_ip" @click="startTest">
+          <button class="btn-run" :disabled="running || !selectedInst?.private_ip" @click="startTest">
             <span v-if="running" class="spinner" />
             {{ running ? '실행 중...' : '▶ 테스트 시작' }}
           </button>
@@ -114,7 +116,6 @@ const elapsedSec       = ref(0)
 const formError        = ref('')
 
 const form = ref({
-  url:      '',
   path:     '/',
   method:   'GET',
   rps:      10,
@@ -177,13 +178,8 @@ async function onInstanceChange() {
 
 async function startTest() {
   formError.value = ''
-  if (!form.value.url) {
-    formError.value = '대상 URL을 입력해주세요.'
-    return
-  }
 
   const payload = {
-    url:      form.value.url,
     path:     form.value.path || '/',
     method:   form.value.method,
     rps:      form.value.rps,
@@ -430,6 +426,17 @@ loadInstances()
   font-size: 0.875rem;
   padding: 20px 0 4px;
   margin: 0;
+}
+
+.endpoint-info {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0 0 16px;
+}
+
+.endpoint-val {
+  font-weight: 600;
+  color: #374151;
 }
 
 .error-msg {

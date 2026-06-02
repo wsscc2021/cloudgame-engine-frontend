@@ -1,119 +1,157 @@
 <template>
   <div class="loadtest">
+
     <!-- 인스턴스 선택 -->
-    <div class="card select-card">
-      <h3 class="card-title">인스턴스 선택</h3>
+    <div class="card">
+      <div class="card-header-row">
+        <h3 class="card-title">인스턴스 선택</h3>
+        <div v-if="instances.length > 0" class="select-actions">
+          <button type="button" class="btn-text" :disabled="anyRunning" @click="selectAll">전체 선택</button>
+          <span class="divider">|</span>
+          <button type="button" class="btn-text" :disabled="anyRunning" @click="deselectAll">전체 해제</button>
+        </div>
+      </div>
+
       <div v-if="fetchingInstances" class="hint">불러오는 중...</div>
       <div v-else-if="instances.length === 0" class="hint">생성된 인스턴스가 없습니다.</div>
-      <template v-else>
-        <select v-model="selectedId" class="instance-select" :disabled="running" @change="onInstanceChange">
-          <option :value="null" disabled>인스턴스를 선택하세요</option>
-          <option v-for="inst in instances" :key="inst.id" :value="inst.id">
-            {{ inst.instance_id }} — {{ inst.username ?? '미배정' }} ({{ inst.state }})
-          </option>
-        </select>
-        <p v-if="selectedInst && !selectedInst.private_ip" class="warn">
-          선택한 인스턴스에 Private IP가 없습니다. 인스턴스가 실행 중인지 확인하세요.
-        </p>
-        <p v-else-if="selectedInst && !selectedInst.username" class="warn">
-          인스턴스에 배정된 사용자가 없습니다.
-        </p>
-      </template>
+      <div v-else class="instance-checklist">
+        <label
+          v-for="inst in instances"
+          :key="inst.id"
+          class="check-item"
+          :class="{ 'check-disabled': anyRunning }"
+        >
+          <input
+            type="checkbox"
+            :value="inst.id"
+            v-model="selectedIds"
+            :disabled="anyRunning"
+          />
+          <span class="check-label">
+            <span class="mono">{{ inst.instance_id }}</span>
+            <span class="sep">—</span>
+            <span class="uname">{{ inst.username ?? '미배정' }}</span>
+            <span :class="['badge', `badge-${inst.state}`]">{{ inst.state }}</span>
+            <span v-if="!inst.private_ip" class="tag-warn">IP없음</span>
+            <span v-if="!inst.username" class="tag-warn">미배정</span>
+          </span>
+        </label>
+      </div>
+
+      <p v-if="selectedIds.length > 0" class="selection-hint">
+        {{ selectedIds.length }}개 인스턴스 선택됨
+      </p>
     </div>
 
-    <template v-if="selectedId">
-      <!-- 설정 폼 -->
-      <div class="card form-card">
-        <h3 class="card-title">테스트 설정</h3>
-        <p class="endpoint-info">
-          대상 URL: <span class="endpoint-val">{{ selectedInst?.username ?? '—' }}의 Endpoint</span>
-        </p>
-        <div class="form-grid">
-          <div class="field">
-            <label>경로</label>
-            <input v-model="form.path" type="text" placeholder="/" :disabled="running" />
-          </div>
-          <div class="field">
-            <label>Method</label>
-            <select v-model="form.method" :disabled="running">
-              <option>GET</option>
-              <option>POST</option>
-              <option>PUT</option>
-              <option>PATCH</option>
-              <option>DELETE</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>RPS <span class="hint-label">(초당 요청 수)</span></label>
-            <input v-model.number="form.rps" type="number" min="1" :disabled="running" />
-          </div>
-          <div class="field">
-            <label>시간 <span class="hint-label">(초)</span></label>
-            <input v-model.number="form.duration" type="number" min="1" :disabled="running" />
-          </div>
-          <div class="field">
-            <label>타임아웃 <span class="hint-label">(초)</span></label>
-            <input v-model.number="form.timeout" type="number" min="1" step="0.5" :disabled="running" />
-          </div>
-          <div class="field span-2">
-            <label>쿼리 스트링</label>
-            <input v-model="form.query" type="text" placeholder="key=value&key2=value2" :disabled="running" />
-          </div>
-          <div v-if="bodyVisible" class="field span-2">
-            <label>요청 바디 <span class="hint-label">(JSON)</span></label>
-            <textarea v-model="form.body" placeholder='{"key": "value"}' rows="3" :disabled="running" />
-          </div>
+    <!-- 설정 폼 -->
+    <div v-if="selectedIds.length > 0" class="card">
+      <h3 class="card-title">테스트 설정</h3>
+      <p class="endpoint-info">대상 URL은 각 인스턴스에 배정된 사용자의 Endpoint로 자동 설정됩니다.</p>
+
+      <div class="form-grid">
+        <div class="field">
+          <label>경로</label>
+          <input v-model="form.path" type="text" placeholder="/" :disabled="anyRunning" />
         </div>
-
-        <p v-if="formError" class="error-msg">{{ formError }}</p>
-
-        <div class="form-actions">
-          <button class="btn-run" :disabled="running || !selectedInst?.private_ip" @click="startTest">
-            <span v-if="running" class="spinner" />
-            {{ running ? '실행 중...' : '▶ 테스트 시작' }}
-          </button>
+        <div class="field">
+          <label>Method</label>
+          <select v-model="form.method" :disabled="anyRunning">
+            <option>GET</option>
+            <option>POST</option>
+            <option>PUT</option>
+            <option>PATCH</option>
+            <option>DELETE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>RPS <span class="hint-label">(초당 요청 수)</span></label>
+          <input v-model.number="form.rps" type="number" min="1" :disabled="anyRunning" />
+        </div>
+        <div class="field">
+          <label>시간 <span class="hint-label">(초)</span></label>
+          <input v-model.number="form.duration" type="number" min="1" :disabled="anyRunning" />
+        </div>
+        <div class="field">
+          <label>타임아웃 <span class="hint-label">(초)</span></label>
+          <input v-model.number="form.timeout" type="number" min="1" step="0.5" :disabled="anyRunning" />
+        </div>
+        <div class="field">
+          <label>쿼리 스트링</label>
+          <input v-model="form.query" type="text" placeholder="key=value&key2=value2" :disabled="anyRunning" />
+        </div>
+        <div v-if="bodyVisible" class="field span-2">
+          <label>요청 바디 <span class="hint-label">(JSON)</span></label>
+          <textarea v-model="form.body" placeholder='{"key": "value"}' rows="3" :disabled="anyRunning" />
         </div>
       </div>
 
-      <!-- 상태 / 결과 -->
-      <div v-if="status" class="card result-card">
-        <div class="result-header">
-          <span class="badge" :class="running ? 'badge-running' : 'badge-done'">
-            {{ running ? '실행 중' : '완료' }}
+      <p v-if="formError" class="error-msg">{{ formError }}</p>
+
+      <div class="form-actions">
+        <button class="btn-run" :disabled="anyRunning" @click="startTests">
+          <span v-if="anyRunning" class="spinner" />
+          {{ anyRunning
+            ? `실행 중 (${runningIds.length}개)`
+            : `▶ ${selectedIds.length}개 인스턴스에 테스트 시작` }}
+        </button>
+      </div>
+    </div>
+
+    <!-- 결과 영역 -->
+    <template v-if="startResult">
+      <!-- 시작 실패 -->
+      <div v-if="startResult.failed.length > 0" class="card fail-card">
+        <h3 class="card-title fail-title">시작 실패 ({{ startResult.failed.length }}개)</h3>
+        <div v-for="f in startResult.failed" :key="f.id" class="fail-item">
+          <span class="fail-name">{{ f.username ?? f.instance_id ?? `ID ${f.id}` }}</span>
+          <span class="fail-reason">{{ f.reason }}</span>
+        </div>
+      </div>
+
+      <!-- 인스턴스별 상태 카드 -->
+      <div v-for="item in startResult.started" :key="item.id" class="card status-card">
+        <div class="status-header">
+          <span class="status-name">{{ item.username }}</span>
+          <span class="status-iid mono">{{ item.instance_id }}</span>
+          <span class="badge" :class="runningIds.includes(item.id) ? 'badge-running' : 'badge-done'">
+            {{ runningIds.includes(item.id) ? '실행 중' : '완료' }}
           </span>
-          <span v-if="running" class="elapsed">경과 {{ elapsedSec }}s</span>
-          <span v-else-if="status.finished_at && status.started_at" class="elapsed">
-            소요 {{ Math.round(status.finished_at - status.started_at) }}s
+          <span v-if="runningIds.includes(item.id)" class="elapsed">
+            경과 {{ elapsedMap[item.id] ?? 0 }}s
+          </span>
+          <span v-else-if="statusMap[item.id]?.finished_at && statusMap[item.id]?.started_at" class="elapsed">
+            소요 {{ Math.round(statusMap[item.id].finished_at - statusMap[item.id].started_at) }}s
           </span>
         </div>
 
-        <pre v-if="status.output" class="output">{{ status.output }}</pre>
+        <pre v-if="statusMap[item.id]?.output" class="output">{{ statusMap[item.id].output }}</pre>
 
-        <div v-if="status.error" class="error-box">
+        <div v-if="statusMap[item.id]?.error" class="error-box">
           <strong>오류</strong>
-          <p>{{ status.error }}</p>
+          <p>{{ statusMap[item.id].error }}</p>
         </div>
 
-        <p v-if="!status.output && !status.error && running" class="waiting">
-          결과를 기다리는 중입니다...
-        </p>
+        <p v-if="!statusMap[item.id]?.output && !statusMap[item.id]?.error && runningIds.includes(item.id)"
+           class="waiting">결과를 기다리는 중입니다...</p>
       </div>
     </template>
+
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, reactive, computed, onUnmounted } from 'vue'
 import { getInstances } from '@/api/ec2'
-import { runLoadTest, getLoadStatus } from '@/api/load'
+import { runLoadTestMulti, getLoadStatus } from '@/api/load'
 
-const instances        = ref([])
+const instances         = ref([])
 const fetchingInstances = ref(false)
-const selectedId       = ref(null)
-const status           = ref(null)
-const running          = ref(false)
-const elapsedSec       = ref(0)
-const formError        = ref('')
+const selectedIds       = ref([])
+const formError         = ref('')
+const startResult       = ref(null)   // { started: [], failed: [] }
+const runningIds        = ref([])     // IDs currently running
+const statusMap         = reactive({})
+const elapsedMap        = reactive({})
 
 const form = ref({
   path:     '/',
@@ -125,66 +163,70 @@ const form = ref({
   body:     '',
 })
 
-const selectedInst = computed(() => instances.value.find(i => i.id === selectedId.value) ?? null)
-const bodyVisible  = computed(() => ['POST', 'PUT', 'PATCH'].includes(form.value.method))
+const bodyVisible = computed(() => ['POST', 'PUT', 'PATCH'].includes(form.value.method))
+const anyRunning  = computed(() => runningIds.value.length > 0)
 
 let pollTimer    = null
 let elapsedTimer = null
 
-function startElapsed() {
-  const t0 = Date.now()
-  elapsedSec.value = 0
+// ── 경과 시간 타이머 ───────────────────────────────────────
+const startTimes = {}  // { id: Date.now() }
+
+function startElapsedTimer() {
   elapsedTimer = setInterval(() => {
-    elapsedSec.value = Math.floor((Date.now() - t0) / 1000)
+    for (const id of runningIds.value) {
+      if (startTimes[id]) {
+        elapsedMap[id] = Math.floor((Date.now() - startTimes[id]) / 1000)
+      }
+    }
   }, 1000)
 }
 
-function stopElapsed() { clearInterval(elapsedTimer); elapsedTimer = null }
-function startPolling() { pollTimer = setInterval(fetchStatus, 3000) }
-function stopPolling()  { clearInterval(pollTimer);  pollTimer  = null }
+function stopElapsedTimer() {
+  clearInterval(elapsedTimer)
+  elapsedTimer = null
+}
 
-async function fetchStatus() {
-  if (!selectedId.value) return
-  try {
-    const { data } = await getLoadStatus(selectedId.value)
-    status.value = data.data
-    const isRunning = data.data?.running ?? false
-    if (running.value && !isRunning) {
-      running.value = false
-      stopPolling()
-      stopElapsed()
-    }
-  } catch {
+// ── 폴링 ───────────────────────────────────────────────────
+async function pollAll() {
+  if (runningIds.value.length === 0) {
     stopPolling()
-    stopElapsed()
-    running.value = false
+    stopElapsedTimer()
+    return
+  }
+
+  const still = []
+  await Promise.all(runningIds.value.map(async (id) => {
+    try {
+      const { data } = await getLoadStatus(id)
+      statusMap[id] = data.data
+      if (data.data?.running) still.push(id)
+    } catch {
+      // 연결 실패 시 해당 인스턴스만 완료 처리
+    }
+  }))
+
+  runningIds.value = still
+  if (still.length === 0) {
+    stopPolling()
+    stopElapsedTimer()
   }
 }
 
-async function onInstanceChange() {
-  stopPolling()
-  stopElapsed()
-  running.value  = false
-  status.value   = null
-  formError.value = ''
-  if (!selectedId.value) return
-  await fetchStatus()
-  if (status.value?.running) {
-    running.value = true
-    startElapsed()
-    startPolling()
-  }
-}
+function startPolling() { pollTimer = setInterval(pollAll, 3000) }
+function stopPolling()  { clearInterval(pollTimer); pollTimer = null }
 
-async function startTest() {
+// ── 테스트 시작 ─────────────────────────────────────────────
+async function startTests() {
   formError.value = ''
 
   const payload = {
-    path:     form.value.path || '/',
-    method:   form.value.method,
-    rps:      form.value.rps,
-    duration: form.value.duration,
-    timeout:  form.value.timeout,
+    record_ids: selectedIds.value,
+    path:       form.value.path || '/',
+    method:     form.value.method,
+    rps:        form.value.rps,
+    duration:   form.value.duration,
+    timeout:    form.value.timeout,
   }
   if (form.value.query) payload.query = form.value.query
   if (bodyVisible.value && form.value.body) {
@@ -197,23 +239,33 @@ async function startTest() {
   }
 
   try {
-    await runLoadTest(selectedId.value, payload)
-    running.value = true
-    status.value  = { running: true, started_at: Date.now() / 1000,
-                      finished_at: null, output: null, error: null }
-    startElapsed()
-    startPolling()
-  } catch (err) {
-    const msg = err.response?.data?.message
-    if (err.response?.status === 409) {
-      formError.value = msg ?? '이미 실행 중입니다.'
-      running.value   = true
-      startPolling()
-    } else {
-      formError.value = msg ?? '테스트 시작에 실패했습니다.'
+    const { data } = await runLoadTestMulti(payload)
+    const result = data.data
+    startResult.value = result
+
+    // 시작된 인스턴스 상태 초기화
+    const now = Date.now()
+    for (const item of result.started) {
+      statusMap[item.id] = { running: true, started_at: now / 1000,
+                             finished_at: null, output: null, error: null }
+      startTimes[item.id] = now
+      elapsedMap[item.id] = 0
     }
+
+    runningIds.value = result.started.map(i => i.id)
+
+    if (runningIds.value.length > 0) {
+      startElapsedTimer()
+      startPolling()
+    }
+  } catch (err) {
+    formError.value = err.response?.data?.message ?? '테스트 시작에 실패했습니다.'
   }
 }
+
+// ── 인스턴스 목록 ───────────────────────────────────────────
+function selectAll()   { selectedIds.value = instances.value.map(i => i.id) }
+function deselectAll() { selectedIds.value = [] }
 
 async function loadInstances() {
   fetchingInstances.value = true
@@ -221,13 +273,13 @@ async function loadInstances() {
     const { data } = await getInstances()
     instances.value = data.data
   } catch {
-    // 목록 로드 실패 시 빈 상태 유지
+    // 로드 실패 시 빈 상태 유지
   } finally {
     fetchingInstances.value = false
   }
 }
 
-onUnmounted(() => { stopPolling(); stopElapsed() })
+onUnmounted(() => { stopPolling(); stopElapsedTimer() })
 
 loadInstances()
 </script>
@@ -244,50 +296,135 @@ loadInstances()
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  padding: 28px 32px;
+  padding: 24px 28px;
+}
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
 }
 
 .card-title {
   font-size: 1rem;
   font-weight: 700;
   color: #1a1a2e;
+  margin: 0;
+}
+
+.select-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #4f46e5;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-text:hover:not(:disabled) { text-decoration: underline; }
+.btn-text:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.divider { color: #d1d5db; font-size: 0.8rem; }
+
+/* 체크리스트 */
+.instance-checklist {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.check-item:last-child { border-bottom: none; }
+.check-item:hover:not(.check-disabled) { background: #f5f5ff; }
+.check-disabled { cursor: not-allowed; opacity: 0.6; }
+
+.check-item input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: #4f46e5;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.mono { font-family: 'Courier New', monospace; font-size: 0.82rem; }
+.sep  { color: #d1d5db; }
+.uname { color: #374151; font-weight: 500; }
+
+.tag-warn {
+  font-size: 0.72rem;
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.selection-hint {
+  font-size: 0.82rem;
+  color: #4f46e5;
+  font-weight: 500;
+  margin: 10px 0 0;
+}
+
+.hint { color: #9ca3af; font-size: 0.875rem; }
+
+/* 상태 배지 */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-running       { background: #dbeafe; color: #1d4ed8; }
+.badge-pending       { background: #dbeafe; color: #1d4ed8; }
+.badge-done          { background: #dcfce7; color: #16a34a; }
+.badge-stopped       { background: #f3f4f6; color: #6b7280; }
+.badge-stopping,
+.badge-shutting-down { background: #fef3c7; color: #d97706; }
+.badge-terminated    { background: #fee2e2; color: #dc2626; }
+
+/* 폼 */
+.endpoint-info {
+  font-size: 0.82rem;
+  color: #6b7280;
   margin: 0 0 16px;
 }
 
-.hint {
-  color: #9ca3af;
-  font-size: 0.875rem;
-}
-
-.warn {
-  margin: 8px 0 0;
-  font-size: 0.85rem;
-  color: #d97706;
-}
-
-/* 인스턴스 선택 */
-.instance-select {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  outline: none;
-  background: #fff;
-  transition: border-color 0.2s;
-}
-
-.instance-select:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
-.instance-select:disabled { background: #f9fafb; color: #9ca3af; cursor: not-allowed; }
-
-/* 폼 */
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
 }
 
-.span-2 { grid-column: 1 / -1; }
+.span-2 { grid-column: span 2; }
 
 .field {
   display: flex;
@@ -301,13 +438,7 @@ loadInstances()
   color: #374151;
 }
 
-.required { color: #ef4444; }
-
-.hint-label {
-  font-weight: 400;
-  color: #9ca3af;
-  font-size: 0.78rem;
-}
+.hint-label { font-weight: 400; color: #9ca3af; font-size: 0.78rem; }
 
 .field input,
 .field select,
@@ -339,13 +470,13 @@ loadInstances()
   cursor: not-allowed;
 }
 
-.form-actions { margin-top: 20px; }
+.form-actions { margin-top: 18px; }
 
 .btn-run {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 24px;
+  padding: 10px 22px;
   background: #4f46e5;
   color: #fff;
   border: none;
@@ -371,37 +502,49 @@ loadInstances()
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* 결과 */
-.result-header {
+/* 실패 카드 */
+.fail-card { border: 1px solid #fecaca; }
+.fail-title { color: #dc2626; }
+
+.fail-item {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-top: 1px solid #fee2e2;
+  font-size: 0.875rem;
+}
+
+.fail-name   { font-weight: 600; color: #374151; white-space: nowrap; }
+.fail-reason { color: #dc2626; }
+
+/* 인스턴스별 상태 카드 */
+.status-card { padding: 20px 28px; }
+
+.status-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
 }
 
-.badge {
-  display: inline-block;
-  padding: 3px 12px;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.badge-running { background: #dbeafe; color: #1d4ed8; }
-.badge-done    { background: #dcfce7; color: #16a34a; }
+.status-name { font-weight: 700; color: #1a1a2e; font-size: 0.95rem; }
+.status-iid  { font-size: 0.78rem; color: #9ca3af; }
 
 .elapsed {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: #6b7280;
+  margin-left: auto;
 }
 
 .output {
   background: #0f172a;
   color: #e2e8f0;
   border-radius: 8px;
-  padding: 16px 20px;
+  padding: 14px 18px;
   font-family: 'Courier New', monospace;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   line-height: 1.6;
   overflow-x: auto;
   white-space: pre;
@@ -412,7 +555,7 @@ loadInstances()
   background: #fef2f2;
   border: 1px solid #fecaca;
   border-radius: 8px;
-  padding: 14px 18px;
+  padding: 12px 16px;
   color: #dc2626;
   font-size: 0.875rem;
 }
@@ -424,19 +567,7 @@ loadInstances()
   text-align: center;
   color: #9ca3af;
   font-size: 0.875rem;
-  padding: 20px 0 4px;
-  margin: 0;
-}
-
-.endpoint-info {
-  font-size: 0.85rem;
-  color: #6b7280;
-  margin: 0 0 16px;
-}
-
-.endpoint-val {
-  font-weight: 600;
-  color: #374151;
+  margin: 12px 0 0;
 }
 
 .error-msg {
@@ -445,8 +576,12 @@ loadInstances()
   margin: 10px 0 0;
 }
 
-@media (max-width: 640px) {
-  .card { padding: 20px 16px; }
+@media (max-width: 768px) {
+  .card { padding: 18px 16px; }
+  .form-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
   .form-grid { grid-template-columns: 1fr; }
   .span-2 { grid-column: 1; }
 }

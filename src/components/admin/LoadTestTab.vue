@@ -133,6 +133,47 @@
 
         <p v-if="!statusMap[item.id]?.output && !statusMap[item.id]?.error && runningIds.includes(item.id)"
            class="waiting">결과를 기다리는 중입니다...</p>
+
+        <!-- 이벤트 로그 -->
+        <div class="log-section">
+          <div class="log-header">
+            <span class="log-title">이벤트 로그</span>
+            <span v-if="logsTotal[item.id] != null" class="log-count">
+              {{ logsMap[item.id]?.length ?? 0 }} / {{ logsTotal[item.id] }}건
+            </span>
+            <button class="btn-text" :disabled="logsFetching[item.id]" @click="fetchLogs(item.id)">
+              {{ logsFetching[item.id] ? '로딩...' : '새로고침' }}
+            </button>
+          </div>
+
+          <div v-if="logsMap[item.id]?.length > 0" class="log-table-wrap">
+            <table class="log-table">
+              <thead>
+                <tr>
+                  <th>시각</th>
+                  <th>상태</th>
+                  <th>지연(ms)</th>
+                  <th>오류</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="log in logsMap[item.id]" :key="log.id"
+                    :class="log.error ? 'row-error' : log.status_code >= 400 ? 'row-warn' : ''">
+                  <td class="mono">{{ log.occurred_at.replace('T', ' ').slice(0, 19) }}</td>
+                  <td>
+                    <span :class="['badge-sm', log.status_code >= 400 ? 'badge-sm-err' : 'badge-sm-ok']">
+                      {{ log.status_code ?? '—' }}
+                    </span>
+                  </td>
+                  <td class="mono">{{ log.latency_ms?.toFixed(1) }}</td>
+                  <td class="err-text">{{ log.error ?? '' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p v-else-if="logsMap[item.id] != null && logsMap[item.id].length === 0" class="hint">저장된 로그가 없습니다.</p>
+          <p v-else class="hint">새로고침 버튼을 눌러 로그를 불러오세요.</p>
+        </div>
       </div>
     </template>
 
@@ -142,7 +183,7 @@
 <script setup>
 import { ref, reactive, computed, onUnmounted } from 'vue'
 import { getInstances } from '@/api/ec2'
-import { runLoadTestMulti, getLoadStatus } from '@/api/load'
+import { runLoadTestMulti, getLoadStatus, getLoadLogs } from '@/api/load'
 
 const instances         = ref([])
 const fetchingInstances = ref(false)
@@ -170,7 +211,10 @@ let pollTimer    = null
 let elapsedTimer = null
 
 // ── 경과 시간 타이머 ───────────────────────────────────────
-const startTimes = {}  // { id: Date.now() }
+const startTimes = {}   // { id: Date.now() }
+const logsMap    = reactive({})   // { id: [] }
+const logsTotal  = reactive({})   // { id: number }
+const logsFetching = reactive({}) // { id: bool }
 
 function startElapsedTimer() {
   elapsedTimer = setInterval(() => {
@@ -196,11 +240,16 @@ async function pollAll() {
   }
 
   const still = []
+  const justFinished = []
   await Promise.all(runningIds.value.map(async (id) => {
     try {
       const { data } = await getLoadStatus(id)
       statusMap[id] = data.data
-      if (data.data?.running) still.push(id)
+      if (data.data?.running) {
+        still.push(id)
+      } else {
+        justFinished.push(id)
+      }
     } catch {
       // 연결 실패 시 해당 인스턴스만 완료 처리
     }
@@ -211,10 +260,29 @@ async function pollAll() {
     stopPolling()
     stopElapsedTimer()
   }
+
+  // 방금 완료된 인스턴스의 로그 가져오기
+  for (const id of justFinished) {
+    fetchLogs(id)
+  }
 }
 
 function startPolling() { pollTimer = setInterval(pollAll, 3000) }
 function stopPolling()  { clearInterval(pollTimer); pollTimer = null }
+
+// ── 이벤트 로그 조회 ────────────────────────────────────────
+async function fetchLogs(id) {
+  logsFetching[id] = true
+  try {
+    const { data } = await getLoadLogs(id, { limit: 200 })
+    logsMap[id]   = data.data.logs
+    logsTotal[id] = data.data.total
+  } catch {
+    // 조회 실패 시 무시
+  } finally {
+    logsFetching[id] = false
+  }
+}
 
 // ── 테스트 시작 ─────────────────────────────────────────────
 async function startTests() {
@@ -569,6 +637,81 @@ loadInstances()
   font-size: 0.875rem;
   margin: 12px 0 0;
 }
+
+/* 이벤트 로그 */
+.log-section {
+  margin-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 14px;
+}
+
+.log-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.log-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #374151;
+}
+
+.log-count {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.log-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.log-table th {
+  position: sticky;
+  top: 0;
+  background: #f9fafb;
+  text-align: left;
+  padding: 7px 12px;
+  font-weight: 600;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.log-table td {
+  padding: 5px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.log-table tr:last-child td { border-bottom: none; }
+.log-table tr.row-error td  { background: #fef2f2; }
+.log-table tr.row-warn td   { background: #fffbeb; }
+
+.badge-sm {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.badge-sm-ok  { background: #dcfce7; color: #16a34a; }
+.badge-sm-err { background: #fee2e2; color: #dc2626; }
+
+.err-text { color: #dc2626; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 
 .error-msg {
   font-size: 0.875rem;
